@@ -1,0 +1,11 @@
+# https://docs.aws.amazon.com/eks/latest/userguide/aws-load-balancer-controller.html
+
+- name: Service Account Setup and overwride
+  include_tasks: service-account.yml
+  
+- name: Certmanager config inject Setup
+  include_tasks: cert-manager.yml
+
+- name: Deploy AWS Ingress Controller 
+  include_tasks: aws-ingress-controller.yml
+

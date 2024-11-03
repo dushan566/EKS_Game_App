@@ -1,0 +1,34 @@
+- name: Check default kubecongig exist
+  stat: path="~/.kube/config"
+  register: default_config_stat
+
+- name: Backup existing kubecongifg 
+  command: mv ~/.kube/config  ~/.kube/config_backup
+  when: default_config_stat.stat.exists
+
+- name: Get cluster name
+  command: terraform output cluster_name
+  args:
+    chdir: ../terraform
+  register: cluster_name
+
+- name: Create Kubeconfig for Cluster
+  command: aws eks update-kubeconfig --region {{ region }} --name {{ cluster_name.stdout }}
+
+- name: Rename new kubeconfig 
+  command: mv ~/.kube/config  ~/.kube/{{ cluster_name.stdout }}
+  ignore_errors: true
+
+- name: Check node status 
+  ansible.builtin.command: kubectl --kubeconfig  ~/.kube/{{ cluster_name.stdout }} get nodes
+  register: node_status
+
+- name: Print node status
+  ansible.builtin.debug:
+    msg: 
+    - "{{ node_status.stdout }}"
+
+- name: AWS Auth config setup
+  include_tasks: aws-auth-config.yaml
+  
+

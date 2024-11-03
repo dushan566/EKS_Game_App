@@ -35,3 +35,9 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+
+terraform/terraform.auto.tfvars
+terraform/s3_backend.tf
+**/.DS_Store
+#secrets

@@ -1,0 +1,6 @@
+---
+- name: AWS loadbalancer Ingress Setup
+  hosts: 127.0.0.1
+  connection: local
+  roles:
+    - aws-loadbalancer-ingress

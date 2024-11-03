@@ -1,0 +1,55 @@
+- name: Check default kubecongig exist
+  stat: path="~/.kube/config"
+  register: default_config_stat
+
+- name: Backup existing kubecongifg 
+  command: mv ~/.kube/config  ~/.kube/config_backup
+  when: default_config_stat.stat.exists
+
+- name: Get cluster name
+  command: terraform output cluster_name
+  args:
+    chdir: ../terraform
+  register: cluster_name
+
+- name: Create dev-app template
+  template:
+    src: dev-app.j2
+    dest: /tmp/dev-app.yaml
+
+- name: Create Game-2048 template
+  template:
+    src: game2048-app.j2
+    dest: /tmp/game2048-app.yaml
+
+- name: Deploy apps
+  command:  kubectl --kubeconfig  ~/.kube/{{ cluster_name.stdout }} apply -f {{ item }}
+  with_items: 
+    - "/tmp/dev-app.yaml"
+    - "/tmp/game2048-app.yaml"
+  retries: 2
+  delay: 5
+  register: result
+  until: result.rc == 0
+
+- name: Pause for 1 minutes to Provision ALBs
+  ansible.builtin.pause:
+    minutes: 1
+
+- name: Check Dev App Ingress status 
+  ansible.builtin.command: kubectl --kubeconfig  ~/.kube/{{ cluster_name.stdout }} get ingress/ingress-dev -n dev-app
+  register: ingress_dev_status
+
+- name: Check Game 2048 Ingress status 
+  ansible.builtin.command: kubectl --kubeconfig  ~/.kube/{{ cluster_name.stdout }} get ingress/ingress-2048 -n game-2048
+  register: ingress_game_status
+
+- name: Print Devapp ingress status
+  ansible.builtin.debug:
+    msg: 
+    - "{{ ingress_dev_status.stdout }}"
+
+- name: Print Game 2048 ingress status
+  ansible.builtin.debug:
+    msg: 
+    - "{{ ingress_game_status.stdout }}"
