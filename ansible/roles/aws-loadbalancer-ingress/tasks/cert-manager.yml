@@ -1,0 +1,12 @@
+- name: Get cluster name
+  ansible.builtin.command: terraform output cluster_name
+  args:
+    chdir: ../terraform
+  register: cluster_name
+
+- name: Download and Deploy CertManager 
+  ansible.builtin.command: kubectl --kubeconfig  ~/.kube/{{ cluster_name.stdout }} apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v1.5.4/cert-manager.yaml
+  retries: 2
+  delay: 5
+  register: result
+  until: result.rc == 0

@@ -1,0 +1,24 @@
+apiVersion: v1
+data:
+  mapRoles: |
+    - rolearn: {{eks_admin_iam_role_arn.stdout[1:-1]}}
+      username: admin
+      groups:
+      - system:masters
+    - rolearn: {{eks_developer_iam_role_arn.stdout[1:-1]}}
+      username: developer
+      groups:
+      - developer
+    - rolearn: {{eks_readonly_iam_role_arn.stdout[1:-1]}}
+      username: readonly
+      groups:
+      - readonly
+    - groups:
+      - system:bootstrappers
+      - system:nodes
+      rolearn: {{node_iam_role_arn.stdout[1:-1]}}
+      username: system:node:{{'{{'}}EC2PrivateDNSName{{'}}'}}
+kind: ConfigMap
+metadata:
+  name: aws-auth
+  namespace: kube-system

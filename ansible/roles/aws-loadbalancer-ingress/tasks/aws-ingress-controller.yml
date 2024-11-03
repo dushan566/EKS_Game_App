@@ -1,0 +1,57 @@
+- name: Get cluster name
+  command: terraform output cluster_name
+  args:
+    chdir: ../terraform
+  register: cluster_name
+
+- debug:
+    msg: "{{cluster_name.stdout}}"
+    
+# - name: Download Ingress Controller yaml 
+#   template:
+#     src: https://github.com/kubernetes-sigs/aws-load-balancer-controller/releases/download/v2.4.4/v2_4_4_full.yaml
+#     dest: /tmp/ingress-controller.yaml
+
+# - name: Remove Service Account section
+#   ansible.builtin.command: sed -i.bak -e '480,488d' /tmp/ingress-controller.yaml
+
+# - name: Update Cluster Name in Ingress Controller manifest file
+#   ansible.builtin.command: sed -i.bak -e 's|your-cluster-name|{{ cluster_name.stdout }}|' /tmp/ingress-controller.yaml
+
+# In this template service account has been removed and added following
+#  - --cluster-name={{cluster_name.stdout[1:-1]}} // [1:-1] uses to remove 
+# alb.ingress.kubernetes.io/group.name: {{cluster_name.stdout[1:-1]}} // This is to avoid multiple ALBs per ingress (All records will be created in one ALB per cluster)
+- name: Generate Ingress Controller template
+  template:
+    src: v2_4_4_full.j2
+    dest: /tmp/ingress-controller.yaml
+
+# -------------------------------------------------------------------------------------------------------------------
+# - name: Update the CRDs
+#   ansible.builtin.command:  kubectl --kubeconfig  ~/.kube/{{ cluster_name.stdout }} apply -k "github.com/aws/eks-charts/stable/aws-load-balancer-controller//crds?ref=master"
+#   retries: 2
+#   delay: 5
+#   register: result
+#   until: result.rc == 0
+# -------------------------------------------------------------------------------------------------------------------
+
+
+- name: Deploy AWS ingress controller 
+  ansible.builtin.command:  kubectl --kubeconfig  ~/.kube/{{ cluster_name.stdout }} apply -f  /tmp/ingress-controller.yaml
+  retries: 2
+  delay: 5
+  register: result
+  until: result.rc == 0
+
+
+- name: Validate AWS loadbalancer controller 
+  ansible.builtin.command: kubectl --kubeconfig  ~/.kube/{{ cluster_name.stdout }} get deployment -n kube-system aws-load-balancer-controller
+  register: aws_load_balancer_controller_status
+
+- name: Print aws-load-balancer-controller status 
+  debug:
+    msg:
+    - "{{ aws_load_balancer_controller_status.stdout }}"
+
+
+

@@ -1,0 +1,48 @@
+- name: Check default kubecongig exist
+  stat: path="~/.kube/config"
+  register: default_config_stat
+
+- name: Backup existing kubecongifg 
+  command: mv ~/.kube/config  ~/.kube/config_backup
+  when: default_config_stat.stat.exists
+
+- name: Get cluster name
+  command: terraform output cluster_name
+  args:
+    chdir: ../terraform
+  register: cluster_name
+
+- name: Get node_iam_role_arn name
+  command: terraform output node_iam_role_arn
+  args:
+    chdir: ../terraform
+  register: node_iam_role_arn
+
+- name: Get eks_admin_iam_role_arn name
+  command: terraform output eks_admin_iam_role_arn
+  args:
+    chdir: ../terraform
+  register: eks_admin_iam_role_arn
+
+- name: Get eks_developer_iam_role_arn 
+  command: terraform output eks_developer_iam_role_arn
+  args:
+    chdir: ../terraform
+  register: eks_developer_iam_role_arn
+
+- name: Get eks_readonly_iam_role_arn 
+  command: terraform output eks_readonly_iam_role_arn
+  args:
+    chdir: ../terraform
+  register: eks_readonly_iam_role_arn
+
+- name: Generate AWS Auth configmap
+  template:
+    src: aws-auth-configmap.j2
+    dest: /tmp/aws-auth-configmap.yaml
+
+- name: Apply RBAC
+  ansible.builtin.command: kubectl --kubeconfig  ~/.kube/{{ cluster_name.stdout }} apply -f ../env-secrets/{{env}}/k8s/rbac.yaml
+
+- name: Apply AWS Auth configmap
+  ansible.builtin.command: kubectl --kubeconfig  ~/.kube/{{ cluster_name.stdout }} apply -f /tmp/aws-auth-configmap.yaml
