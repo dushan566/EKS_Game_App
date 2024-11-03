@@ -54,7 +54,7 @@ kubectl auth can-i update pods
 kubectl auth can-i "*" "*"
 ```
 
-## Provisioning the Serverless Application
+## Provisioning the EKS Game Application
 
 To set up and deploy the Game application, follow these steps and ensure the necessary tools and configurations are in place.
 
